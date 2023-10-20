@@ -44,6 +44,7 @@ package org.jboss.osgi.spi.framework;
 
 import org.osgi.framework.BundleException;
 import org.osgi.framework.FrameworkEvent;
+import org.osgi.framework.FrameworkListener;
 import org.osgi.framework.launch.Framework;
 
 /**
@@ -66,6 +67,11 @@ class GenericFrameworkWrapper<T extends Framework> extends GenericBundleWrapper<
     public void init() throws BundleException {
         getWrappedFramework().init();
     }
+
+    @Override
+    public void init(FrameworkListener... listeners) throws BundleException {
+        getWrappedFramework().init(listeners);
+    } 
 
     @Override
     public FrameworkEvent waitForStop(long timeout) throws InterruptedException {

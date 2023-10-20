@@ -49,7 +49,7 @@ import org.osgi.framework.launch.Framework;
 
 /**
  * An OSGiBootstrapProvider provides an OSGi Framework
- * <p/>
+ * 
  * Implementations would configure the OSGi Framework through some form of descriptor.
  * 
  * @author thomas.diesler@jboss.com
