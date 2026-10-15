@@ -141,6 +141,8 @@ public abstract class ConstantsHelper {
             retType = "WAIT_TIMEDOUT";
         else if (FrameworkEvent.WARNING == eventType)
             retType = "WARNING";
+        else if (FrameworkEvent.STOPPED_SYSTEM_REFRESHED == eventType)
+            retType = "STOPPED_SYSTEM_REFRESHED";
         return retType;
     }
 
