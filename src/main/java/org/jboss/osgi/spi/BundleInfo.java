@@ -92,14 +92,28 @@ public class BundleInfo implements Serializable {
         if (url == null)
             throw MESSAGES.illegalArgumentCannotObtainRealLocation(location);
 
-        return new BundleInfo(toVirtualFile(url), url.toExternalForm(), null);
+        return createBundleInfoWithOwnRoot(url);
     }
 
     public static BundleInfo createBundleInfo(URL url) throws BundleException {
         if (url == null)
             throw MESSAGES.illegalArgumentNull("url");
 
-        return new BundleInfo(toVirtualFile(url), url.toExternalForm(), null);
+        return createBundleInfoWithOwnRoot(url);
+    }
+
+    // The root file is created here, nobody but this method can close it when there is no bundle info
+    private static BundleInfo createBundleInfoWithOwnRoot(URL url) throws BundleException {
+        VirtualFile rootFile = toVirtualFile(url);
+        boolean created = false;
+        try {
+            BundleInfo info = new BundleInfo(rootFile, url.toExternalForm(), null);
+            created = true;
+            return info;
+        } finally {
+            if (created == false)
+                VFSUtils.safeClose(rootFile);
+        }
     }
 
     public static BundleInfo createBundleInfo(VirtualFile root) throws BundleException {

@@ -195,7 +195,7 @@ public final class StringPropertyReplacer {
                             int colon = key.indexOf(':');
                             if (colon > 0) {
                                 String realKey = key.substring(0, colon);
-                                value = provider.getProperty(key);
+                                value = provider.getProperty(realKey);
 
                                 if (value == null) {
                                     // Check for a composite key, "key1,key2"

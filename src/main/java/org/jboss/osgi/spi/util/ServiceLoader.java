@@ -47,11 +47,14 @@ import static org.jboss.osgi.spi.SPIMessages.MESSAGES;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Loads service implementations from the classpath that defines the service class.
@@ -92,39 +95,51 @@ public final class ServiceLoader {
         }
 
         // Use the Services API (as detailed in the JAR specification), if available, to determine the classname.
+        // The providers of every provider-configuration file are loaded, in the order of the class loader
         String filename = "META-INF/services/" + serviceClass.getName();
-        InputStream inStream = loader.getResourceAsStream(filename);
-        if (inStream == null)
+        Enumeration<URL> urls;
+        try {
+            urls = loader.getResources(filename);
+        } catch (IOException ex) {
+            throw MESSAGES.illegalStateCannotLoadServiceClass(ex, serviceClass.getName());
+        }
+        if (urls.hasMoreElements() == false)
             LOGGER.debugf("Cannot find resource: %s", filename);
 
-        if (inStream != null) {
+        Set<String> implClassNames = new HashSet<String>();
+        while (urls.hasMoreElements()) {
+            URL url = urls.nextElement();
             try {
-                BufferedReader br = new BufferedReader(new InputStreamReader(inStream, "UTF-8"));
-                String implClassName = br.readLine();
-                while (implClassName != null) {
-                    int hashIndex = implClassName.indexOf("#");
-                    if (hashIndex >= 0)
-                        implClassName = implClassName.substring(0, hashIndex);
+                BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream(), "UTF-8"));
+                try {
+                    String implClassName = br.readLine();
+                    while (implClassName != null) {
+                        int hashIndex = implClassName.indexOf("#");
+                        if (hashIndex >= 0)
+                            implClassName = implClassName.substring(0, hashIndex);
 
-                    implClassName = implClassName.trim();
+                        implClassName = implClassName.trim();
 
-                    if (implClassName.length() > 0) {
-                        try {
-                            Class<T> implClass = (Class<T>) loader.loadClass(implClassName);
-                            if (serviceClass.isAssignableFrom(implClass))
-                                services.add(implClass.newInstance());
-                            else
-                                LOGGER.warnServiceNotAssignable(implClassName);
-                        } catch (Exception ex) {
-                            LOGGER.debugf(ex, "Cannot load service: %s", implClassName);
+                        // A provider that is declared more than once is loaded once
+                        if (implClassName.length() > 0 && implClassNames.add(implClassName)) {
+                            try {
+                                Class<T> implClass = (Class<T>) loader.loadClass(implClassName);
+                                if (serviceClass.isAssignableFrom(implClass))
+                                    services.add(implClass.newInstance());
+                                else
+                                    LOGGER.warnServiceNotAssignable(implClassName);
+                            } catch (Exception ex) {
+                                LOGGER.debugf(ex, "Cannot load service: %s", implClassName);
+                            }
                         }
-                    }
 
-                    implClassName = br.readLine();
+                        implClassName = br.readLine();
+                    }
+                } finally {
+                    br.close();
                 }
-                br.close();
             } catch (IOException ex) {
-                throw MESSAGES.illegalStateCannotLoadServiceClass(ex, serviceClassName);
+                throw MESSAGES.illegalStateCannotLoadServiceClass(ex, serviceClass.getName());
             }
         }
 
